@@ -1,0 +1,3 @@
+[submodule "third_party/tauri-plugin-custom-titlebar"]
+	path = third_party/tauri-plugin-custom-titlebar
+	url = https://github.com/caojiachen1/tauri-plugin-custom-titlebar
