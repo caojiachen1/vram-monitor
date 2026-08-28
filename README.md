@@ -30,11 +30,11 @@ npm run tauri build   # 打包安装程序（src-tauri/target/release/bundle）
 
 - `src-tauri/src/lib.rs` — 后台线程轮询 NVML，通过 `gpu-stats` 事件推送到前端；`fit_height` 命令在 Rust 端做窗口高度自适应（DPI 换算必须在 Rust 侧做）
 - `ui/` — 无打包器的原生 HTML/JS 前端；`titlebar.js` 为插件 guest-js 的全局脚本移植
-- `third_party/tauri-plugin-custom-titlebar` — 自定义标题栏插件（crate 未发布，git clone 后以 path 依赖接入）
+- `third_party/tauri-plugin-custom-titlebar` — 自定义标题栏插件（git submodule，crate 未发布）
 - `src-tauri/gen_icon.py` — 图标生成脚本（生成 `icons/icon.ico`）
 
-注意：`third_party` 插件以本地路径依赖引用，首次获取请执行：
+注意：克隆本项目后需初始化 submodule：
 
 ```bash
-git clone --depth 1 https://github.com/caojiachen1/tauri-plugin-custom-titlebar third_party/tauri-plugin-custom-titlebar
+git submodule update --init
 ```
