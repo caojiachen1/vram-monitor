@@ -19,7 +19,12 @@ nvml-wrapper = "0.10"
 sysinfo = "0.33"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["Win32_System_Performance"] }
+windows = { version = "0.62", features = [
+    "Win32_System_Performance",
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+] }
 tauri-plugin-frameless-titlebar = { path = "../third_party/tauri-plugin-custom-titlebar" }
 
 [profile.release]

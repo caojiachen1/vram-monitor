@@ -45,7 +45,7 @@ function renderCard(gpu) {
         <span class="gpu-name" title="${gpu.name}">${gpu.name}</span>
         <span class="gpu-meta">#${gpu.index}</span>
       </div>
-      <div class="vram-row">
+      <div class="vram-row" title="驱动视角的实际驻留专用显存（NVML，与 nvidia-smi 一致），大于任务管理器显示的专用显存——差额是硬件保留段与内核独占分配（约 0.3~0.5 GB），VidMm 口径不计入">
         <span class="vram-value">${fmtGB(gpu.used_mb)} <span class="total">/ ${fmtGB(gpu.total_mb)} GB</span></span>
         <span class="vram-percent">${pct.toFixed(1)}%</span>
       </div>
@@ -54,8 +54,9 @@ function renderCard(gpu) {
         <span>GPU 利用率 ${gpu.gpu_util}%</span>
         <span>温度 ${gpu.temp}°C</span>
       </div>
-      <button class="proc-toggle ${open ? "open" : ""}" data-idx="${gpu.index}">
-        <span>占用进程 ${procs.length} · ${sumGB} GB</span>
+      <button class="proc-toggle ${open ? "open" : ""}" data-idx="${gpu.index}"
+              title="各进程专用显存提交额度之和（已剔除核显）。不含硬件保留段与驱动内核独占的分配，故小于上方的驱动总占用">
+        <span>占用进程 ${procs.length} · 提交 ${sumGB} GB</span>
         <svg class="chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
           <path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>

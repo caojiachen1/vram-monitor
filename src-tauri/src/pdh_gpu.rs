@@ -15,11 +15,12 @@
 //!
 //! 关键步骤通过 stderr 输出调试日志（debug 构建从终端启动时可见）。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 use std::time::Instant;
 
-use windows::core::{w, PCWSTR};
+use windows::core::{w, PCWSTR, PWSTR};
+use windows::Win32::Graphics::Dxgi::{CreateDXGIFactory1, IDXGIFactory1};
 use windows::Win32::System::Performance::{
     PdhAddCounterW, PdhCloseQuery, PdhCollectQueryData, PdhGetFormattedCounterArrayW,
     PdhOpenQueryW, PDH_FMT_COUNTERVALUE_ITEM_W, PDH_FMT_DOUBLE, PDH_HCOUNTER, PDH_HQUERY,
@@ -39,6 +40,31 @@ macro_rules! pdh_log {
 }
 
 const COUNTER_PATH: PCWSTR = w!("\\GPU Process Memory(*)\\Dedicated Usage");
+const NVIDIA_VENDOR_ID: u32 = 0x10DE;
+
+/// 用 DXGI 枚举所有 NVIDIA 适配器的 LUID（(HighPart, LowPart)，高 32 位在前）。
+/// 实例名里的 `luid_0x高_0x低` 只有落在这些适配器上的显存才算 NVIDIA 的占用，
+/// 借此把混合显卡下核显上的分配过滤掉。DXGI 失败时返回空集，上层退回"不过滤"。
+fn nvidia_luids() -> HashSet<(u32, u32)> {
+    unsafe {
+        let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() else {
+            return HashSet::new();
+        };
+        let mut luids = HashSet::new();
+        for i in 0.. {
+            let Ok(adapter) = factory.EnumAdapters1(i) else {
+                break;
+            };
+            let Ok(desc) = adapter.GetDesc1() else {
+                continue;
+            };
+            if desc.VendorId == NVIDIA_VENDOR_ID {
+                luids.insert((desc.AdapterLuid.HighPart as u32, desc.AdapterLuid.LowPart));
+            }
+        }
+        luids
+    }
+}
 
 pub struct GpuProcessQuery {
     query: PDH_HQUERY,
@@ -108,7 +134,9 @@ impl GpuProcessQuery {
                 buf.as_ptr().cast::<PDH_FMT_COUNTERVALUE_ITEM_W>(),
                 count as usize,
             );
+            let nvidia = nvidia_luids();
             let mut by_pid: HashMap<u32, u64> = HashMap::new();
+            let mut skipped_other_gpu = 0usize;
             let mut bad_status = 0usize;
             for item in items {
                 if item.FmtValue.CStatus != 0 {
@@ -116,9 +144,16 @@ impl GpuProcessQuery {
                     continue;
                 }
                 let name = item.szName.to_string().unwrap_or_default();
-                let Some(pid) = parse_pid(&name) else {
+                let Some((pid, luid)) = parse_instance(&name) else {
                     continue;
                 };
+                // 只统计 NVIDIA 适配器上的分配（DXGI 拿不到 LUID 时不过滤）
+                if let Some(luid) = luid {
+                    if !nvidia.is_empty() && !nvidia.contains(&luid) {
+                        skipped_other_gpu += 1;
+                        continue;
+                    }
+                }
                 let bytes = item.FmtValue.Anonymous.doubleValue;
                 if bytes <= 0.0 || pid == 0 {
                     continue;
@@ -126,10 +161,11 @@ impl GpuProcessQuery {
                 *by_pid.entry(pid).or_insert(0) += bytes as u64;
             }
             pdh_log!(
-                "collected {} pids from {} items in {:?} (skipped {bad_status} bad-status)",
+                "collected {} pids from {} items in {:?} (skipped {bad_status} bad-status, {skipped_other_gpu} other-GPU, nvidia-luids={})",
                 by_pid.len(),
                 count,
-                t0.elapsed()
+                t0.elapsed(),
+                nvidia.len()
             );
             Some(by_pid)
         }
@@ -142,8 +178,18 @@ impl Drop for GpuProcessQuery {
     }
 }
 
-fn parse_pid(instance: &str) -> Option<u32> {
+/// 解析实例名 `pid_1234_luid_0x00000000_0x00019F66_phys_0` -> (pid, (高32位, 低32位))。
+/// 非 NVIDIA 标准实例（无 luid 段）时 luid 为 None。
+fn parse_instance(instance: &str) -> Option<(u32, Option<(u32, u32)>)> {
     let rest = instance.strip_prefix("pid_")?;
-    let digits = rest.split('_').next()?;
-    digits.parse().ok()
+    let mut parts = rest.split('_');
+    let pid = parts.next()?.parse().ok()?;
+    let luid = if parts.next() == Some("luid") {
+        let high = u32::from_str_radix(parts.next()?.strip_prefix("0x")?, 16).ok()?;
+        let low = u32::from_str_radix(parts.next()?.strip_prefix("0x")?, 16).ok()?;
+        Some((high, low))
+    } else {
+        None
+    };
+    Some((pid, luid))
 }
