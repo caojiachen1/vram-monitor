@@ -14,7 +14,7 @@
   IgnorableNamespaces="uap uap2 uap3 uap10 desktop desktop6 desktop7 desktop10 rescap">
 
   <Identity
-    Name="vram-monitor"
+    Name="vrammonitor"
     Publisher="CN=Developer"
     Version="0.1.0.0" />
 
@@ -35,7 +35,7 @@
   </Resources>
 
   <Applications>
-    <Application Id="vram-monitor"
+    <Application Id="vrammonitor"
       Executable="vram-monitor.exe"
       EntryPoint="Windows.FullTrustApplication"
       uap10:TrustLevel="mediumIL"

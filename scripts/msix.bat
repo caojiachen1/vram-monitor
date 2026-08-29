@@ -35,6 +35,9 @@ copy .\appxmanifest.xml .\msix
 xcopy /E /I .\icons .\msix\icons
 copy /Y .\src-tauri\icons\icon.ico .\msix\icons\icon.ico 2>nul
 
+REM --- Sanitize manifest: MSIX forbids hyphens in Identity Name / Application Id ---
+powershell -NoProfile -Command "(Get-Content -LiteralPath '.\msix\appxmanifest.xml' -Raw) -replace '<Identity\s+Name=\"vram-monitor\"', '<Identity Name=\"vrammonitor\"' -replace '<Application\s+Id=\"vram-monitor\"', '<Application Id=\"vrammonitor\"' | Set-Content -LiteralPath '.\msix\appxmanifest.xml' -NoNewline"
+
 REM --- Pack and sign ---
 winapp pack .\msix --cert .\devcert.pfx
 
