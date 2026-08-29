@@ -41,9 +41,17 @@ def draw(size):
                 px[i:i + 4] = (30, 33, 40, 255)        # card bg
     return bytes(px)
 
+def write_png(path, size, rgba):
+    with open(path, "wb") as f:
+        f.write(encode_png(size, rgba))
+
 def main():
     out_dir = os.path.join(os.path.dirname(__file__), "icons")
     os.makedirs(out_dir, exist_ok=True)
+    # High-res PNG used as the source/master icon
+    png_size = 512
+    write_png(os.path.join(out_dir, "icon.png"), png_size, draw(png_size))
+    print("icon.png written:", png_size, "x", png_size)
     entries = []
     for s in (32, 256):
         png = encode_png(s, draw(s))
