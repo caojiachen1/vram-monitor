@@ -9,6 +9,15 @@ const MIN_HEIGHT = 140;
 
 const fmtGB = (mb) => (mb / 1024).toFixed(2);
 
+const escapeHtml = (s) =>
+  s.replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[c]);
+
+// 展开状态按 GPU index 记忆，跨刷新保留
+const expanded = new Set();
+let lastPayload = { gpus: [], error: null };
+
 function levelClass(pct) {
   if (pct >= 90) return "hot";
   if (pct >= 75) return "warn";
@@ -17,6 +26,19 @@ function levelClass(pct) {
 
 function renderCard(gpu) {
   const pct = gpu.total_mb > 0 ? (gpu.used_mb / gpu.total_mb) * 100 : 0;
+  const procs = gpu.processes || [];
+  const open = expanded.has(gpu.index);
+  const sumGB = fmtGB(procs.reduce((s, p) => s + p.used_mb, 0));
+  const rows = procs
+    .slice(0, 12)
+    .map(
+      (p) => `
+      <div class="proc-row">
+        <span class="proc-name" title="${escapeHtml(p.name)} (PID ${p.pid})">${escapeHtml(p.name)}</span>
+        <span class="proc-mem">${fmtGB(p.used_mb)} GB</span>
+      </div>`,
+    )
+    .join("");
   return `
     <div class="gpu-card" data-index="${gpu.index}">
       <div class="gpu-head">
@@ -32,10 +54,18 @@ function renderCard(gpu) {
         <span>GPU 利用率 ${gpu.gpu_util}%</span>
         <span>温度 ${gpu.temp}°C</span>
       </div>
+      <button class="proc-toggle ${open ? "open" : ""}" data-idx="${gpu.index}">
+        <span>占用进程 ${procs.length} · ${sumGB} GB</span>
+        <svg class="chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      ${open ? `<div class="proc-list">${rows || '<div class="proc-empty">无进程占用</div>'}</div>` : ""}
     </div>`;
 }
 
 function render(payload) {
+  lastPayload = payload;
   if (payload.error && payload.gpus.length === 0) {
     listEl.innerHTML = `<div class="status error">${payload.error}</div>`;
   } else if (payload.gpus.length === 0) {
@@ -72,6 +102,16 @@ pinBtn.addEventListener("click", async () => {
   await win.setAlwaysOnTop(!pinned);
   pinBtn.classList.toggle("active", !pinned);
   pinBtn.title = !pinned ? "固定窗口置顶" : "取消置顶";
+});
+
+// 展开/收起进程列表后按当前数据重渲染
+listEl.addEventListener("click", (ev) => {
+  const btn = ev.target.closest(".proc-toggle");
+  if (!btn) return;
+  const idx = Number(btn.dataset.idx);
+  if (expanded.has(idx)) expanded.delete(idx);
+  else expanded.add(idx);
+  render(lastPayload);
 });
 
 window.attachTitlebar();
