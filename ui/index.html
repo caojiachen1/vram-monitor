@@ -3,13 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GPU 显存监控</title>
+    <title>系统资源监控</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header data-tb-drag>
-      <h1>GPU 显存监控</h1>
+      <h1>系统资源监控</h1>
       <div class="header-actions">
+        <button id="settings-btn" class="pin" data-tb-nodrag title="显示设置">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
         <button id="pin-btn" class="pin active" data-tb-nodrag title="固定窗口置顶">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="12" x2="12" y1="17" y2="22"/>
@@ -39,6 +45,17 @@
         </div>
       </div>
     </header>
+    <section id="settings-panel" hidden>
+      <div class="settings-title">默认显示项</div>
+      <label class="settings-item"><input type="checkbox" data-cfg="cpu" />CPU</label>
+      <label class="settings-item"><input type="checkbox" data-cfg="mem" />内存</label>
+      <label class="settings-item"><input type="checkbox" data-cfg="disks" />磁盘</label>
+      <label class="settings-item"><input type="checkbox" data-cfg="nets" />网络</label>
+      <label class="settings-item"><input type="checkbox" data-cfg="gpus" />GPU</label>
+      <div class="settings-title">卡片样式</div>
+      <label class="settings-item"><input type="radio" name="card-style" value="chart" />走势图</label>
+      <label class="settings-item"><input type="radio" name="card-style" value="bar" />进度条</label>
+    </section>
     <main id="gpu-list">
       <div class="status">正在连接 NVML…</div>
     </main>

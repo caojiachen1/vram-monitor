@@ -11,15 +11,16 @@
     "windows": [
       {
         "label": "main",
-        "title": "GPU 显存监控",
-        "width": 380,
+        "title": "系统资源监控",
+        "width": 420,
         "height": 240,
         "minWidth": 280,
-        "minHeight": 180,
+        "minHeight": 110,
         "resizable": true,
         "decorations": false,
         "alwaysOnTop": true,
-        "center": true
+        "center": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {
